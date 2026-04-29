@@ -126,12 +126,43 @@ export type Database = {
           },
         ]
       }
+      note_revisions: {
+        Row: {
+          body: string
+          change_type: string
+          contact_id: string
+          created_at: string
+          id: string
+          note_id: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          change_type?: string
+          contact_id: string
+          created_at?: string
+          id?: string
+          note_id: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          change_type?: string
+          contact_id?: string
+          created_at?: string
+          id?: string
+          note_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notes: {
         Row: {
           body: string
           contact_id: string
           created_at: string
           id: string
+          updated_at: string
           user_id: string
         }
         Insert: {
@@ -139,6 +170,7 @@ export type Database = {
           contact_id: string
           created_at?: string
           id?: string
+          updated_at?: string
           user_id: string
         }
         Update: {
@@ -146,6 +178,7 @@ export type Database = {
           contact_id?: string
           created_at?: string
           id?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
