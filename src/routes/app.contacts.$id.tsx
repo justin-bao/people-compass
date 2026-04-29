@@ -234,23 +234,80 @@ function ContactDetail() {
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         {/* Timeline */}
         <div className="bento md:col-span-4">
-          <h2 className="serif text-2xl mb-4">Timeline</h2>
-          {interactions.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">No moments logged yet. Use the buttons above.</p>
-          ) : (
-            <ol className="relative border-l border-border pl-5 space-y-4">
-              {interactions.map((i) => (
-                <li key={i.id} className="relative">
-                  <span className="absolute -left-[26px] top-1.5 h-2 w-2 rounded-full bg-primary" />
-                  <div className="text-xs text-muted-foreground serif italic">
-                    {new Date(i.occurred_at).toLocaleDateString("en", { month: "long", day: "numeric", year: "numeric" })}
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <h2 className="serif text-2xl">Timeline</h2>
+            <div className="text-xs text-muted-foreground">
+              {(() => {
+                const filtered = typeFilter ? interactions.filter((i) => i.type === typeFilter) : interactions;
+                return `${filtered.length} ${filtered.length === 1 ? "moment" : "moments"}`;
+              })()}
+            </div>
+          </div>
+          {/* Filter chips */}
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            <button
+              onClick={() => setTypeFilter(null)}
+              className={`rounded-full px-3 py-1 text-xs border transition ${typeFilter === null ? "bg-foreground text-background border-foreground" : "bg-background border-border hover:bg-secondary"}`}
+            >
+              All
+            </button>
+            {interactionTypes.map((t) => {
+              const count = interactions.filter((i) => i.type === t.key).length;
+              if (count === 0) return null;
+              const active = typeFilter === t.key;
+              return (
+                <button
+                  key={t.key}
+                  onClick={() => setTypeFilter(active ? null : t.key)}
+                  className={`rounded-full px-3 py-1 text-xs border flex items-center gap-1.5 transition ${active ? "bg-foreground text-background border-foreground" : "bg-background border-border hover:bg-secondary"}`}
+                >
+                  <t.icon className="h-3 w-3" /> {t.label} <span className="opacity-60">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+          {(() => {
+            const filtered = typeFilter ? interactions.filter((i) => i.type === typeFilter) : interactions;
+            if (filtered.length === 0) {
+              return <p className="text-sm text-muted-foreground py-4">{interactions.length === 0 ? "No moments logged yet. Use the buttons above." : "No moments match this filter."}</p>;
+            }
+            // Group by month for richer timeline
+            const groups: Record<string, Interaction[]> = {};
+            filtered.forEach((i) => {
+              const k = new Date(i.occurred_at).toLocaleDateString("en", { month: "long", year: "numeric" });
+              (groups[k] ||= []).push(i);
+            });
+            return (
+              <div className="space-y-6">
+                {Object.entries(groups).map(([month, items]) => (
+                  <div key={month}>
+                    <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-3">{month}</div>
+                    <ol className="relative border-l border-border pl-5 space-y-4">
+                      {items.map((i) => {
+                        const meta = typeMeta[i.type] ?? { label: i.type, icon: StickyNote };
+                        const Icon = meta.icon;
+                        const d = new Date(i.occurred_at);
+                        return (
+                          <li key={i.id} className="relative">
+                            <span className="absolute -left-[31px] top-0.5 h-5 w-5 rounded-full bg-card border border-border flex items-center justify-center">
+                              <Icon className="h-2.5 w-2.5 text-primary" />
+                            </span>
+                            <div className="flex items-baseline gap-2 flex-wrap">
+                              <span className="text-sm font-medium">{meta.label}</span>
+                              <span className="text-xs text-muted-foreground serif italic">
+                                {d.toLocaleDateString("en", { weekday: "short", month: "short", day: "numeric" })} · {d.toLocaleTimeString("en", { hour: "numeric", minute: "2-digit" })}
+                              </span>
+                            </div>
+                            {i.notes && <p className="text-sm text-muted-foreground mt-1">{i.notes}</p>}
+                          </li>
+                        );
+                      })}
+                    </ol>
                   </div>
-                  <div className="text-sm font-medium capitalize">{i.type}</div>
-                  {i.notes && <p className="text-sm text-muted-foreground mt-1">{i.notes}</p>}
-                </li>
-              ))}
-            </ol>
-          )}
+                ))}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Details */}
