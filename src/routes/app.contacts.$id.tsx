@@ -20,7 +20,8 @@ type Contact = {
 };
 type Tier = { id: string; name: string; color: string; cadence_days: number };
 type Interaction = { id: string; type: string; occurred_at: string; notes: string | null };
-type Note = { id: string; body: string; created_at: string };
+type Note = { id: string; body: string; created_at: string; updated_at: string };
+type NoteRevision = { id: string; note_id: string; body: string; change_type: string; created_at: string };
 type Reminder = { id: string; due_at: string; message: string | null; status: string };
 
 const interactionTypes = [
@@ -29,7 +30,12 @@ const interactionTypes = [
   { key: "text", label: "Text", icon: MessageSquare },
   { key: "email", label: "Email", icon: Mail },
   { key: "video", label: "Video", icon: Video },
+  { key: "note", label: "Note", icon: StickyNote },
 ];
+
+const typeMeta: Record<string, { label: string; icon: any }> = Object.fromEntries(
+  interactionTypes.map((t) => [t.key, { label: t.label, icon: t.icon }])
+);
 
 function ContactDetail() {
   const { id } = Route.useParams();
