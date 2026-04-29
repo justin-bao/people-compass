@@ -9,38 +9,140 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppTiersRouteImport } from './routes/app.tiers'
+import { Route as AppSettingsRouteImport } from './routes/app.settings'
+import { Route as AppContactsIndexRouteImport } from './routes/app.contacts.index'
+import { Route as AppContactsIdRouteImport } from './routes/app.contacts.$id'
 
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTiersRoute = AppTiersRouteImport.update({
+  id: '/tiers',
+  path: '/tiers',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppContactsIndexRoute = AppContactsIndexRouteImport.update({
+  id: '/contacts/',
+  path: '/contacts/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppContactsIdRoute = AppContactsIdRouteImport.update({
+  id: '/contacts/$id',
+  path: '/contacts/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/app': typeof AppRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/app/settings': typeof AppSettingsRoute
+  '/app/tiers': typeof AppTiersRoute
+  '/app/': typeof AppIndexRoute
+  '/app/contacts/$id': typeof AppContactsIdRoute
+  '/app/contacts/': typeof AppContactsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/app/settings': typeof AppSettingsRoute
+  '/app/tiers': typeof AppTiersRoute
+  '/app': typeof AppIndexRoute
+  '/app/contacts/$id': typeof AppContactsIdRoute
+  '/app/contacts': typeof AppContactsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/app': typeof AppRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/app/settings': typeof AppSettingsRoute
+  '/app/tiers': typeof AppTiersRoute
+  '/app/': typeof AppIndexRoute
+  '/app/contacts/$id': typeof AppContactsIdRoute
+  '/app/contacts/': typeof AppContactsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/app'
+    | '/auth'
+    | '/app/settings'
+    | '/app/tiers'
+    | '/app/'
+    | '/app/contacts/$id'
+    | '/app/contacts/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/app/settings'
+    | '/app/tiers'
+    | '/app'
+    | '/app/contacts/$id'
+    | '/app/contacts'
+  id:
+    | '__root__'
+    | '/'
+    | '/app'
+    | '/auth'
+    | '/app/settings'
+    | '/app/tiers'
+    | '/app/'
+    | '/app/contacts/$id'
+    | '/app/contacts/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  AuthRoute: typeof AuthRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +150,66 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/': {
+      id: '/app/'
+      path: '/'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/tiers': {
+      id: '/app/tiers'
+      path: '/tiers'
+      fullPath: '/app/tiers'
+      preLoaderRoute: typeof AppTiersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/settings': {
+      id: '/app/settings'
+      path: '/settings'
+      fullPath: '/app/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/contacts/': {
+      id: '/app/contacts/'
+      path: '/contacts'
+      fullPath: '/app/contacts/'
+      preLoaderRoute: typeof AppContactsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/contacts/$id': {
+      id: '/app/contacts/$id'
+      path: '/contacts/$id'
+      fullPath: '/app/contacts/$id'
+      preLoaderRoute: typeof AppContactsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppSettingsRoute: typeof AppSettingsRoute
+  AppTiersRoute: typeof AppTiersRoute
+  AppIndexRoute: typeof AppIndexRoute
+  AppContactsIdRoute: typeof AppContactsIdRoute
+  AppContactsIndexRoute: typeof AppContactsIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppSettingsRoute: AppSettingsRoute,
+  AppTiersRoute: AppTiersRoute,
+  AppIndexRoute: AppIndexRoute,
+  AppContactsIdRoute: AppContactsIdRoute,
+  AppContactsIndexRoute: AppContactsIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
