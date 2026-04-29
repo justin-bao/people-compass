@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.record_note_revision() FROM PUBLIC, anon, authenticated;
