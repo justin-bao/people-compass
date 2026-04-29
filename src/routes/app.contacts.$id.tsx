@@ -104,6 +104,39 @@ function ContactDetail() {
     load();
   };
 
+  const saveNoteEdit = async () => {
+    if (!editingNoteId || !editingNoteText.trim()) return;
+    const { error } = await supabase.from("notes").update({ body: editingNoteText.trim() }).eq("id", editingNoteId);
+    if (error) return toast.error(error.message);
+    setEditingNoteId(null);
+    setEditingNoteText("");
+    toast.success("Note updated");
+    load();
+  };
+
+  const deleteNote = async (nid: string) => {
+    if (!confirm("Delete this note? A snapshot will remain in its history.")) return;
+    const { error } = await supabase.from("notes").delete().eq("id", nid);
+    if (error) return toast.error(error.message);
+    toast.success("Note deleted");
+    load();
+  };
+
+  const openHistory = async (note: Note) => {
+    setHistoryFor(note);
+    const { data } = await supabase.from("note_revisions").select("*").eq("note_id", note.id).order("created_at", { ascending: false });
+    setRevisions(data ?? []);
+  };
+
+  const restoreRevision = async (rev: NoteRevision) => {
+    if (!historyFor) return;
+    const { error } = await supabase.from("notes").update({ body: rev.body }).eq("id", historyFor.id);
+    if (error) return toast.error(error.message);
+    toast.success("Restored");
+    setHistoryFor(null);
+    load();
+  };
+
   const deleteContact = async () => {
     if (!confirm(`Remove ${contact.name} from your circle?`)) return;
     const { error } = await supabase.from("contacts").delete().eq("id", contact.id);
