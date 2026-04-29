@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { cadenceHealth, tierDotClass } from "@/lib/cadence";
-import { ArrowLeft, Phone, Coffee, Mail, MessageSquare, Video, Plus, Trash2, Calendar as CalIcon, Instagram, Linkedin, Music2, Twitter, Pencil } from "lucide-react";
+import { ArrowLeft, Phone, Coffee, Mail, MessageSquare, Video, Plus, Trash2, Calendar as CalIcon, Instagram, Linkedin, Music2, Twitter, Pencil, History, X, Check, StickyNote } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/contacts/$id")({
@@ -20,7 +20,8 @@ type Contact = {
 };
 type Tier = { id: string; name: string; color: string; cadence_days: number };
 type Interaction = { id: string; type: string; occurred_at: string; notes: string | null };
-type Note = { id: string; body: string; created_at: string };
+type Note = { id: string; body: string; created_at: string; updated_at: string };
+type NoteRevision = { id: string; note_id: string; body: string; change_type: string; created_at: string };
 type Reminder = { id: string; due_at: string; message: string | null; status: string };
 
 const interactionTypes = [
@@ -29,7 +30,12 @@ const interactionTypes = [
   { key: "text", label: "Text", icon: MessageSquare },
   { key: "email", label: "Email", icon: Mail },
   { key: "video", label: "Video", icon: Video },
+  { key: "note", label: "Note", icon: StickyNote },
 ];
+
+const typeMeta: Record<string, { label: string; icon: any }> = Object.fromEntries(
+  interactionTypes.map((t) => [t.key, { label: t.label, icon: t.icon }])
+);
 
 function ContactDetail() {
   const { id } = Route.useParams();
@@ -43,6 +49,11 @@ function ContactDetail() {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [noteText, setNoteText] = useState("");
   const [editing, setEditing] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<string | null>(null);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingNoteText, setEditingNoteText] = useState("");
+  const [historyFor, setHistoryFor] = useState<Note | null>(null);
+  const [revisions, setRevisions] = useState<NoteRevision[]>([]);
 
   const load = async () => {
     const [c, ts, ints, ns, rs] = await Promise.all([
@@ -90,6 +101,39 @@ function ContactDetail() {
     });
     if (error) return toast.error(error.message);
     setNoteText("");
+    load();
+  };
+
+  const saveNoteEdit = async () => {
+    if (!editingNoteId || !editingNoteText.trim()) return;
+    const { error } = await supabase.from("notes").update({ body: editingNoteText.trim() }).eq("id", editingNoteId);
+    if (error) return toast.error(error.message);
+    setEditingNoteId(null);
+    setEditingNoteText("");
+    toast.success("Note updated");
+    load();
+  };
+
+  const deleteNote = async (nid: string) => {
+    if (!confirm("Delete this note? A snapshot will remain in its history.")) return;
+    const { error } = await supabase.from("notes").delete().eq("id", nid);
+    if (error) return toast.error(error.message);
+    toast.success("Note deleted");
+    load();
+  };
+
+  const openHistory = async (note: Note) => {
+    setHistoryFor(note);
+    const { data } = await supabase.from("note_revisions").select("*").eq("note_id", note.id).order("created_at", { ascending: false });
+    setRevisions(data ?? []);
+  };
+
+  const restoreRevision = async (rev: NoteRevision) => {
+    if (!historyFor) return;
+    const { error } = await supabase.from("notes").update({ body: rev.body }).eq("id", historyFor.id);
+    if (error) return toast.error(error.message);
+    toast.success("Restored");
+    setHistoryFor(null);
     load();
   };
 
@@ -190,23 +234,80 @@ function ContactDetail() {
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         {/* Timeline */}
         <div className="bento md:col-span-4">
-          <h2 className="serif text-2xl mb-4">Timeline</h2>
-          {interactions.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">No moments logged yet. Use the buttons above.</p>
-          ) : (
-            <ol className="relative border-l border-border pl-5 space-y-4">
-              {interactions.map((i) => (
-                <li key={i.id} className="relative">
-                  <span className="absolute -left-[26px] top-1.5 h-2 w-2 rounded-full bg-primary" />
-                  <div className="text-xs text-muted-foreground serif italic">
-                    {new Date(i.occurred_at).toLocaleDateString("en", { month: "long", day: "numeric", year: "numeric" })}
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <h2 className="serif text-2xl">Timeline</h2>
+            <div className="text-xs text-muted-foreground">
+              {(() => {
+                const filtered = typeFilter ? interactions.filter((i) => i.type === typeFilter) : interactions;
+                return `${filtered.length} ${filtered.length === 1 ? "moment" : "moments"}`;
+              })()}
+            </div>
+          </div>
+          {/* Filter chips */}
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            <button
+              onClick={() => setTypeFilter(null)}
+              className={`rounded-full px-3 py-1 text-xs border transition ${typeFilter === null ? "bg-foreground text-background border-foreground" : "bg-background border-border hover:bg-secondary"}`}
+            >
+              All
+            </button>
+            {interactionTypes.map((t) => {
+              const count = interactions.filter((i) => i.type === t.key).length;
+              if (count === 0) return null;
+              const active = typeFilter === t.key;
+              return (
+                <button
+                  key={t.key}
+                  onClick={() => setTypeFilter(active ? null : t.key)}
+                  className={`rounded-full px-3 py-1 text-xs border flex items-center gap-1.5 transition ${active ? "bg-foreground text-background border-foreground" : "bg-background border-border hover:bg-secondary"}`}
+                >
+                  <t.icon className="h-3 w-3" /> {t.label} <span className="opacity-60">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+          {(() => {
+            const filtered = typeFilter ? interactions.filter((i) => i.type === typeFilter) : interactions;
+            if (filtered.length === 0) {
+              return <p className="text-sm text-muted-foreground py-4">{interactions.length === 0 ? "No moments logged yet. Use the buttons above." : "No moments match this filter."}</p>;
+            }
+            // Group by month for richer timeline
+            const groups: Record<string, Interaction[]> = {};
+            filtered.forEach((i) => {
+              const k = new Date(i.occurred_at).toLocaleDateString("en", { month: "long", year: "numeric" });
+              (groups[k] ||= []).push(i);
+            });
+            return (
+              <div className="space-y-6">
+                {Object.entries(groups).map(([month, items]) => (
+                  <div key={month}>
+                    <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-3">{month}</div>
+                    <ol className="relative border-l border-border pl-5 space-y-4">
+                      {items.map((i) => {
+                        const meta = typeMeta[i.type] ?? { label: i.type, icon: StickyNote };
+                        const Icon = meta.icon;
+                        const d = new Date(i.occurred_at);
+                        return (
+                          <li key={i.id} className="relative">
+                            <span className="absolute -left-[31px] top-0.5 h-5 w-5 rounded-full bg-card border border-border flex items-center justify-center">
+                              <Icon className="h-2.5 w-2.5 text-primary" />
+                            </span>
+                            <div className="flex items-baseline gap-2 flex-wrap">
+                              <span className="text-sm font-medium">{meta.label}</span>
+                              <span className="text-xs text-muted-foreground serif italic">
+                                {d.toLocaleDateString("en", { weekday: "short", month: "short", day: "numeric" })} · {d.toLocaleTimeString("en", { hour: "numeric", minute: "2-digit" })}
+                              </span>
+                            </div>
+                            {i.notes && <p className="text-sm text-muted-foreground mt-1">{i.notes}</p>}
+                          </li>
+                        );
+                      })}
+                    </ol>
                   </div>
-                  <div className="text-sm font-medium capitalize">{i.type}</div>
-                  {i.notes && <p className="text-sm text-muted-foreground mt-1">{i.notes}</p>}
-                </li>
-              ))}
-            </ol>
-          )}
+                ))}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Details */}
@@ -237,14 +338,44 @@ function ContactDetail() {
           </div>
           <ul className="space-y-2">
             {notes.length === 0 && <li className="text-xs text-muted-foreground">No notes yet.</li>}
-            {notes.map((n) => (
-              <li key={n.id} className="text-sm bg-background rounded-2xl p-3">
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-                  {new Date(n.created_at).toLocaleDateString("en", { month: "short", day: "numeric" })}
-                </div>
-                {n.body}
-              </li>
-            ))}
+            {notes.map((n) => {
+              const isEditing = editingNoteId === n.id;
+              const wasEdited = new Date(n.updated_at).getTime() - new Date(n.created_at).getTime() > 1000;
+              return (
+                <li key={n.id} className="text-sm bg-background rounded-2xl p-3 group">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                      {new Date(n.created_at).toLocaleDateString("en", { month: "short", day: "numeric" })}
+                      {wasEdited && <span className="ml-1.5 normal-case tracking-normal italic serif">· edited</span>}
+                    </div>
+                    {!isEditing && (
+                      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition">
+                        <button onClick={() => openHistory(n)} title="History" className="p-1 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground"><History className="h-3 w-3" /></button>
+                        <button onClick={() => { setEditingNoteId(n.id); setEditingNoteText(n.body); }} title="Edit" className="p-1 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground"><Pencil className="h-3 w-3" /></button>
+                        <button onClick={() => deleteNote(n.id)} title="Delete" className="p-1 rounded-full hover:bg-secondary text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                      </div>
+                    )}
+                  </div>
+                  {isEditing ? (
+                    <div className="space-y-2">
+                      <textarea
+                        value={editingNoteText}
+                        onChange={(e) => setEditingNoteText(e.target.value)}
+                        rows={3}
+                        className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                        autoFocus
+                      />
+                      <div className="flex gap-1 justify-end">
+                        <button onClick={() => { setEditingNoteId(null); setEditingNoteText(""); }} className="px-2 py-1 rounded-full text-xs text-muted-foreground hover:bg-secondary flex items-center gap-1"><X className="h-3 w-3" /> Cancel</button>
+                        <button onClick={saveNoteEdit} className="px-2 py-1 rounded-full text-xs bg-primary text-primary-foreground flex items-center gap-1"><Check className="h-3 w-3" /> Save</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="whitespace-pre-wrap">{n.body}</div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
 
@@ -286,6 +417,52 @@ function ContactDetail() {
       </div>
 
       {editing && <EditContactModal contact={contact} tiers={tiers} onClose={() => setEditing(false)} onSaved={() => { setEditing(false); load(); }} />}
+      {historyFor && (
+        <div className="fixed inset-0 z-50 bg-ink/30 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" onClick={() => setHistoryFor(null)}>
+          <div className="bg-card rounded-3xl border border-border w-full max-w-lg p-6 shadow-lift my-8" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h2 className="serif text-2xl">Note history</h2>
+                <p className="text-xs text-muted-foreground mt-1">Every edit is preserved. Restore any version.</p>
+              </div>
+              <button onClick={() => setHistoryFor(null)} className="p-1.5 rounded-full hover:bg-secondary text-muted-foreground"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+              <div className="rounded-2xl border border-primary/40 bg-background p-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] uppercase tracking-wider text-primary font-medium">Current</span>
+                  <span className="text-xs text-muted-foreground serif italic">
+                    {new Date(historyFor.updated_at).toLocaleString("en", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                  </span>
+                </div>
+                <div className="text-sm whitespace-pre-wrap">{historyFor.body}</div>
+              </div>
+              {revisions.length === 0 ? (
+                <p className="text-xs text-muted-foreground italic serif text-center py-4">No previous versions yet.</p>
+              ) : (
+                revisions.map((r) => (
+                  <div key={r.id} className="rounded-2xl border border-border bg-background p-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                        {r.change_type === "delete" ? "Deleted version" : "Previous version"}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground serif italic">
+                          {new Date(r.created_at).toLocaleString("en", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                        </span>
+                        {r.change_type !== "delete" && (
+                          <button onClick={() => restoreRevision(r)} className="text-xs text-primary hover:underline">Restore</button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-sm whitespace-pre-wrap text-muted-foreground">{r.body}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
