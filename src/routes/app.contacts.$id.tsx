@@ -49,6 +49,11 @@ function ContactDetail() {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [noteText, setNoteText] = useState("");
   const [editing, setEditing] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<string | null>(null);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingNoteText, setEditingNoteText] = useState("");
+  const [historyFor, setHistoryFor] = useState<Note | null>(null);
+  const [revisions, setRevisions] = useState<NoteRevision[]>([]);
 
   const load = async () => {
     const [c, ts, ints, ns, rs] = await Promise.all([
