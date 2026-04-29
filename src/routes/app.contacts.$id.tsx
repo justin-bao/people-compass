@@ -417,6 +417,52 @@ function ContactDetail() {
       </div>
 
       {editing && <EditContactModal contact={contact} tiers={tiers} onClose={() => setEditing(false)} onSaved={() => { setEditing(false); load(); }} />}
+      {historyFor && (
+        <div className="fixed inset-0 z-50 bg-ink/30 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" onClick={() => setHistoryFor(null)}>
+          <div className="bg-card rounded-3xl border border-border w-full max-w-lg p-6 shadow-lift my-8" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h2 className="serif text-2xl">Note history</h2>
+                <p className="text-xs text-muted-foreground mt-1">Every edit is preserved. Restore any version.</p>
+              </div>
+              <button onClick={() => setHistoryFor(null)} className="p-1.5 rounded-full hover:bg-secondary text-muted-foreground"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+              <div className="rounded-2xl border border-primary/40 bg-background p-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] uppercase tracking-wider text-primary font-medium">Current</span>
+                  <span className="text-xs text-muted-foreground serif italic">
+                    {new Date(historyFor.updated_at).toLocaleString("en", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                  </span>
+                </div>
+                <div className="text-sm whitespace-pre-wrap">{historyFor.body}</div>
+              </div>
+              {revisions.length === 0 ? (
+                <p className="text-xs text-muted-foreground italic serif text-center py-4">No previous versions yet.</p>
+              ) : (
+                revisions.map((r) => (
+                  <div key={r.id} className="rounded-2xl border border-border bg-background p-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                        {r.change_type === "delete" ? "Deleted version" : "Previous version"}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground serif italic">
+                          {new Date(r.created_at).toLocaleString("en", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                        </span>
+                        {r.change_type !== "delete" && (
+                          <button onClick={() => restoreRevision(r)} className="text-xs text-primary hover:underline">Restore</button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-sm whitespace-pre-wrap text-muted-foreground">{r.body}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
