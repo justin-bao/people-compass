@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { cadenceHealth, tierDotClass } from "@/lib/cadence";
-import { ArrowLeft, Phone, Coffee, Mail, MessageSquare, Video, Plus, Trash2, Calendar as CalIcon, Instagram, Linkedin, Music2, Twitter, Pencil } from "lucide-react";
+import { ArrowLeft, Phone, Coffee, Mail, MessageSquare, Video, Plus, Trash2, Calendar as CalIcon, Instagram, Linkedin, Music2, Twitter, Pencil, History, X, Check, StickyNote } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/contacts/$id")({
