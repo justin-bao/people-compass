@@ -13,7 +13,10 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppTiersRouteImport } from './routes/app.tiers'
+import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppContactsIndexRouteImport } from './routes/app.contacts.index'
+import { Route as AppContactsIdRouteImport } from './routes/app.contacts.$id'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -35,9 +38,24 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppTiersRoute = AppTiersRouteImport.update({
+  id: '/tiers',
+  path: '/tiers',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppContactsIndexRoute = AppContactsIndexRouteImport.update({
   id: '/contacts/',
   path: '/contacts/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppContactsIdRoute = AppContactsIdRouteImport.update({
+  id: '/contacts/$id',
+  path: '/contacts/$id',
   getParentRoute: () => AppRoute,
 } as any)
 
@@ -45,13 +63,19 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/app/settings': typeof AppSettingsRoute
+  '/app/tiers': typeof AppTiersRoute
   '/app/': typeof AppIndexRoute
+  '/app/contacts/$id': typeof AppContactsIdRoute
   '/app/contacts/': typeof AppContactsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/app/settings': typeof AppSettingsRoute
+  '/app/tiers': typeof AppTiersRoute
   '/app': typeof AppIndexRoute
+  '/app/contacts/$id': typeof AppContactsIdRoute
   '/app/contacts': typeof AppContactsIndexRoute
 }
 export interface FileRoutesById {
@@ -59,15 +83,42 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/app/settings': typeof AppSettingsRoute
+  '/app/tiers': typeof AppTiersRoute
   '/app/': typeof AppIndexRoute
+  '/app/contacts/$id': typeof AppContactsIdRoute
   '/app/contacts/': typeof AppContactsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/app' | '/auth' | '/app/' | '/app/contacts/'
+  fullPaths:
+    | '/'
+    | '/app'
+    | '/auth'
+    | '/app/settings'
+    | '/app/tiers'
+    | '/app/'
+    | '/app/contacts/$id'
+    | '/app/contacts/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/app' | '/app/contacts'
-  id: '__root__' | '/' | '/app' | '/auth' | '/app/' | '/app/contacts/'
+  to:
+    | '/'
+    | '/auth'
+    | '/app/settings'
+    | '/app/tiers'
+    | '/app'
+    | '/app/contacts/$id'
+    | '/app/contacts'
+  id:
+    | '__root__'
+    | '/'
+    | '/app'
+    | '/auth'
+    | '/app/settings'
+    | '/app/tiers'
+    | '/app/'
+    | '/app/contacts/$id'
+    | '/app/contacts/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -106,6 +157,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/tiers': {
+      id: '/app/tiers'
+      path: '/tiers'
+      fullPath: '/app/tiers'
+      preLoaderRoute: typeof AppTiersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/settings': {
+      id: '/app/settings'
+      path: '/settings'
+      fullPath: '/app/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/contacts/': {
       id: '/app/contacts/'
       path: '/contacts'
@@ -113,16 +178,29 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppContactsIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/contacts/$id': {
+      id: '/app/contacts/$id'
+      path: '/contacts/$id'
+      fullPath: '/app/contacts/$id'
+      preLoaderRoute: typeof AppContactsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppSettingsRoute: typeof AppSettingsRoute
+  AppTiersRoute: typeof AppTiersRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppContactsIdRoute: typeof AppContactsIdRoute
   AppContactsIndexRoute: typeof AppContactsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppSettingsRoute: AppSettingsRoute,
+  AppTiersRoute: AppTiersRoute,
   AppIndexRoute: AppIndexRoute,
+  AppContactsIdRoute: AppContactsIdRoute,
   AppContactsIndexRoute: AppContactsIndexRoute,
 }
 
