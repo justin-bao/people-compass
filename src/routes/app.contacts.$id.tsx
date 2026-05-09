@@ -54,6 +54,39 @@ function ContactDetail() {
   const [editingNoteText, setEditingNoteText] = useState("");
   const [historyFor, setHistoryFor] = useState<Note | null>(null);
   const [revisions, setRevisions] = useState<NoteRevision[]>([]);
+  const [logOpen, setLogOpen] = useState(false);
+  const [logType, setLogType] = useState<string>("call");
+  const [logNotes, setLogNotes] = useState("");
+  const [logWhen, setLogWhen] = useState<string>(() => {
+    const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 16);
+  });
+  const [logSaving, setLogSaving] = useState(false);
+
+  const openLogForm = (preset?: string | null) => {
+    setLogType(preset || typeFilter || "call");
+    setLogNotes("");
+    const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    setLogWhen(d.toISOString().slice(0, 16));
+    setLogOpen(true);
+  };
+
+  const submitLog = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setLogSaving(true);
+    const occurred = new Date(logWhen).toISOString();
+    const { error } = await supabase.from("interactions").insert({
+      user_id: user.id, contact_id: contact!.id, type: logType,
+      occurred_at: occurred, notes: logNotes.trim() || null,
+    });
+    if (!error) await supabase.from("contacts").update({ last_contacted_at: occurred }).eq("id", contact!.id);
+    setLogSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Logged");
+    setLogOpen(false);
+    load();
+  };
 
   const load = async () => {
     const [c, ts, ints, ns, rs] = await Promise.all([
@@ -236,11 +269,19 @@ function ContactDetail() {
         <div className="bento md:col-span-4">
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <h2 className="serif text-2xl">Timeline</h2>
-            <div className="text-xs text-muted-foreground">
-              {(() => {
-                const filtered = typeFilter ? interactions.filter((i) => i.type === typeFilter) : interactions;
-                return `${filtered.length} ${filtered.length === 1 ? "moment" : "moments"}`;
-              })()}
+            <div className="flex items-center gap-3">
+              <div className="text-xs text-muted-foreground">
+                {(() => {
+                  const filtered = typeFilter ? interactions.filter((i) => i.type === typeFilter) : interactions;
+                  return `${filtered.length} ${filtered.length === 1 ? "moment" : "moments"}`;
+                })()}
+              </div>
+              <button
+                onClick={() => (logOpen ? setLogOpen(false) : openLogForm())}
+                className="rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-xs flex items-center gap-1.5 hover:opacity-90 transition"
+              >
+                {logOpen ? <><X className="h-3.5 w-3.5" /> Close</> : <><Plus className="h-3.5 w-3.5" /> Log interaction</>}
+              </button>
             </div>
           </div>
           {/* Filter chips */}
@@ -266,6 +307,52 @@ function ContactDetail() {
               );
             })}
           </div>
+          {logOpen && (
+            <form onSubmit={submitLog} className="mb-4 rounded-2xl border border-border bg-background p-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">New moment</span>
+                {typeFilter && (
+                  <span className="text-[10px] text-muted-foreground serif italic">preselected from filter</span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {interactionTypes.map((t) => {
+                  const active = logType === t.key;
+                  return (
+                    <button
+                      type="button"
+                      key={t.key}
+                      onClick={() => setLogType(t.key)}
+                      className={`rounded-full px-3 py-1 text-xs border flex items-center gap-1.5 transition ${active ? "bg-foreground text-background border-foreground" : "bg-card border-border hover:bg-secondary"}`}
+                    >
+                      <t.icon className="h-3 w-3" /> {t.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-2 items-start">
+                <input
+                  type="datetime-local"
+                  value={logWhen}
+                  onChange={(e) => setLogWhen(e.target.value)}
+                  className="rounded-xl border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                <textarea
+                  value={logNotes}
+                  onChange={(e) => setLogNotes(e.target.value)}
+                  rows={2}
+                  placeholder="What did you talk about? (optional)"
+                  className="rounded-xl border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => setLogOpen(false)} className="px-3 py-1.5 rounded-full text-xs text-muted-foreground hover:bg-secondary">Cancel</button>
+                <button type="submit" disabled={logSaving} className="px-3 py-1.5 rounded-full text-xs bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-60 flex items-center gap-1.5">
+                  <Check className="h-3 w-3" /> {logSaving ? "Saving…" : "Save moment"}
+                </button>
+              </div>
+            </form>
+          )}
           {(() => {
             const filtered = typeFilter ? interactions.filter((i) => i.type === typeFilter) : interactions;
             if (filtered.length === 0) {
